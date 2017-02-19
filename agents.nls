@@ -12,7 +12,9 @@ buses-own [
 
   ; New local variables for students.
   ; You can create any new local variable you want. Just declare them here.
-
+  pass
+  pass_list
+  target
 ]
  
 globals [graph]
@@ -27,4 +29,48 @@ end
 to execute-actions
   ; Add decision making strategies for your agents here.
   ; You are allowed to use the global variable 'ticks'.
+
+  ask buses 
+  [
+    if previous_stop = -1 
+    [
+      if bus_id < 47
+      [
+        add-bus 1
+      ]
+      set target bus_id - 24 
+    ]
+    
+    if current_stop = bus_id - 24 
+    [
+      set pass_list get-passengers-at-stop current_stop
+      if length pass_list > 0
+      [
+        set pass item 0 get-passengers-at-stop current_stop
+        
+        pick-up-passenger item 0 pass
+        
+        set target item 1 pass
+      ]
+    ]
+
+    if length bus_passengers > 0
+    [
+      if current_stop = item 1 item 0 bus_passengers
+      [
+        drop-off-passenger item 0 item 0 bus_passengers
+        set target bus_id - 24
+      ]
+    ]
+    
+    if current_stop = target
+    [
+      stop
+    ]
+    
+    
+    travel-to target
+
+  ]
+
 end
