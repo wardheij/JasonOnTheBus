@@ -68,8 +68,13 @@ to execute-actions
       stop
     ]
     
+    if member? target item previous_stop graph
+    [
+      travel-to target
+    ]
     
-    travel-to target
+    
+    ; travel-to target
 
   ]
 
