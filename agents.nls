@@ -15,6 +15,8 @@ buses-own [
   pass
   pass_list
   target
+  shortest
+  try
 ]
  
 globals [graph]
@@ -33,7 +35,7 @@ to execute-actions
   ask buses 
   [
     if previous_stop = -1 
-    [
+    [      
       if bus_id < 47
       [
         add-bus 1
@@ -68,13 +70,30 @@ to execute-actions
       stop
     ]
     
-    if member? target item previous_stop graph
+    if previous_stop = -1
+    [
+      travel-to target
+      stop
+    ]
+    
+
+    ifelse member? target item previous_stop graph
     [
       travel-to target
     ]
-    
-    
-    ; travel-to target
+    [
+      ifelse current_stop = -1
+      [
+        set try one-of item 3 graph
+      ]
+      [
+        if current_stop = try
+        [
+          set try one-of item current_stop graph
+        ]
+      ]
+      travel-to try 
+    ]
 
   ]
 
