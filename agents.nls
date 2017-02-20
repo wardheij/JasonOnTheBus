@@ -35,7 +35,9 @@ to execute-actions
   ask buses 
   [
     if previous_stop = -1 
-    [      
+    [
+      set try -10
+      
       if bus_id < 47
       [
         add-bus 1
@@ -65,34 +67,66 @@ to execute-actions
       ]
     ]
     
-    if current_stop = target
+    if current_stop = target 
     [
       stop
     ]
     
-    if previous_stop = -1
-    [
-      travel-to target
-      stop
-    ]
     
+    ; Without links
+;    travel-to target
+    
+    ; With links
+    if current_stop = try and not (current_stop = -1)
+    [
+      set try -10
+    ]
 
-    ifelse member? target item previous_stop graph
-    [
-      travel-to target
-    ]
+
+    ifelse not (previous_stop = -1)
     [
       ifelse current_stop = -1
       [
-        set try one-of item 3 graph
-      ]
-      [
-        if current_stop = try
+        ifelse member? target item previous_stop graph
         [
-          set try one-of item current_stop graph
+          travel-to target
+        ]
+        [
+          if try = -10
+          [
+            ifelse current_stop = -1
+            [
+              set try one-of item previous_stop graph
+            ]
+            [
+              set try one-of item current_stop graph
+            ]
+          ]
+          travel-to try
         ]
       ]
-      travel-to try 
+      [
+        ifelse member? target item current_stop graph
+        [
+          travel-to target
+        ]
+        [
+          if try = -10
+          [
+            set try one-of item current_stop graph
+          ]
+          travel-to try
+        ]
+      ]
+      
+    ]
+    [
+      if try = -10
+      [
+        set try one-of item 3 graph
+      ]
+      travel-to try
+      
     ]
 
   ]
