@@ -132,3 +132,12 @@ to execute-actions
   ]
 
 end
+
+to sort-lists [routes]
+  ; @routes is a list of lists
+  ; sorts the route lists based on their first item
+  let sorted_routes sort-by [item 0 ?1 < item 0 ?2] routes 
+  print routes
+  print sorted_routes
+end
+
