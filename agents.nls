@@ -17,9 +17,13 @@ buses-own [
   ; You can create any new local variable you want. Just declare them here.
   pass
   pass_list
+  
+  ; Local variables for determining the target and a path
   target
-  shortest
-  try
+  path
+  
+  ; Temporary variable for finding the shortest route
+  destinations
   
   ; Messaging variables for week 3
   master_id
@@ -38,6 +42,8 @@ to init-buses
   ; Initialize your agents here.
   
   set master_id 24
+  set path []
+  
   ; This list contains the topology of the entire network of bus stops, which is known to all agents. You can use this, for instance, to calculate the shortest path between two bus stops.
   set graph [[22 15 14] [11 19 23 7] [8] [16 4 20 9] [3 5 10] [4 16 10 17] [8] [1 17 13] [2 6 9] [3 8 20] [4 5 17 13 21] [1 16 17] [20 15 22] [7 10 22 23] [0 23] [0 12 18] [3 5 11] [5 7 10 11] [15] [1 23] [3 9 12 21] [10 20 22] [0 12 13 21] [1 13 14 19]]
 end
@@ -48,105 +54,16 @@ to execute-actions
 
   ask buses 
   [
-    if previous_stop = -1 
-    [
-      set try -10
-      
-      if bus_id < 47
-      [
-        add-bus 1
-      ]
-      set target bus_id - 24 
-    ]
+
+    do-strat-1
     
-    if current_stop = bus_id - 24 
-    [
-      set pass_list get-passengers-at-stop current_stop
-      if length pass_list > 0
-      [
-        set pass item 0 get-passengers-at-stop current_stop
+    ; handle-passengers-strat-1
+    
+    move
         
-        pick-up-passenger item 0 pass
-        
-        set target item 1 pass
-      ]
-    ]
-
-    if length bus_passengers > 0
-    [
-      if current_stop = item 1 item 0 bus_passengers
-      [
-        drop-off-passenger item 0 item 0 bus_passengers
-        set target bus_id - 24
-      ]
-    ]
-    
-    if current_stop = target 
-    [
-      stop
-    ]
-    
-    
-    ; Without links
-;    travel-to target
-    
-    ; With links
-    if current_stop = try and not (current_stop = -1)
-    [
-      set try -10
-    ]
-
-
-    ifelse not (previous_stop = -1)
-    [
-      ifelse current_stop = -1
-      [
-        ifelse member? target item previous_stop graph
-        [
-          travel-to target
-        ]
-        [
-          if try = -10
-          [
-            ifelse current_stop = -1
-            [
-              set try one-of item previous_stop graph
-            ]
-            [
-              set try one-of item current_stop graph
-            ]
-          ]
-          travel-to try
-        ]
-      ]
-      [
-        ifelse member? target item current_stop graph
-        [
-          travel-to target
-        ]
-        [
-          if try = -10
-          [
-            set try one-of item current_stop graph
-          ]
-          travel-to try
-        ]
-      ]
-      
-    ]
-    [
-      if try = -10
-      [
-        set try one-of item 3 graph
-      ]
-      travel-to try
-      
-    ]
-    
     ; MASTER AGENT
     if bus_id = master_id [
       get-message
-      
     ]
     
    
@@ -160,7 +77,6 @@ to execute-actions
 
 end
 
-<<<<<<< HEAD
 to message-to [to_bus_id]
   
   ; obtain passenger count
@@ -209,12 +125,80 @@ to get-message
     print table:get message_contents "target"
     
   ]
+  
+end
     
-to sort-lists [routes]
-  ; @routes is a list of lists
+to sort-destinations
+  ; destinations is a list of lists
   ; sorts the route lists based on their first item
-  let sorted_routes sort-by [item 0 ?1 < item 0 ?2] routes 
-  print routes
-  print sorted_routes
+  print destinations
+  set destinations sort-by [item 0 ?1 < item 0 ?2] destinations 
+  print destinations
+end
+
+to get-path
+  
+end
+
+to init-busses-strat-1
+  if previous_stop = -1 
+  [
+    if bus_id < 47
+    [
+      add-bus 1
+    ]
+    set target bus_id - 24 
+  ]
+end
+
+to get-target-strat-1
+  if current_stop = bus_id - 24 
+  [
+    set pass_list get-passengers-at-stop current_stop
+    if length pass_list > 0
+    [
+      set pass item 0 get-passengers-at-stop current_stop
+      
+      pick-up-passenger item 0 pass
+      
+      set target item 1 pass
+    ]
+  ]
+end
+
+to passenger-actions-strat-1
+  if length bus_passengers > 0
+  [
+    if current_stop = item 1 item 0 bus_passengers
+    [
+      drop-off-passenger item 0 item 0 bus_passengers
+      set target bus_id - 24
+    ]
+  ]
+end
+
+to do-strat-1
+  init-busses-strat-1
+  
+  get-target-strat-1
+  
+  passenger-actions-strat-1
+end
+
+to move
+  ; Update path if nessesary
+  if first path = current_stop 
+  [
+    set path but-first path
+  ]
+  
+  ; Get the path to target if there is no path
+  if empty? path
+  [
+    get-path  
+  ]
+
+  ; Move along the path
+  travel-to first path
 end
 
