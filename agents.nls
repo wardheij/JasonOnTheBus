@@ -22,8 +22,12 @@ buses-own [
   target
   path
   
-  ; Temporary variable for finding the shortest route
+  ; Temporary variables for finding the shortest route
   destinations
+  dist
+  this_path
+  this_place
+  this_dist
   
   ; Messaging variables for week 3
   master_id
@@ -43,6 +47,8 @@ to init-buses
   
   set master_id 24
   set path []
+  set destinations []
+  set target 3
   
   ; This list contains the topology of the entire network of bus stops, which is known to all agents. You can use this, for instance, to calculate the shortest path between two bus stops.
   set graph [[22 15 14] [11 19 23 7] [8] [16 4 20 9] [3 5 10] [4 16 10 17] [8] [1 17 13] [2 6 9] [3 8 20] [4 5 17 13 21] [1 16 17] [20 15 22] [7 10 22 23] [0 23] [0 12 18] [3 5 11] [5 7 10 11] [15] [1 23] [3 9 12 21] [10 20 22] [0 12 13 21] [1 13 14 19]]
@@ -54,27 +60,22 @@ to execute-actions
 
   ask buses 
   [
-
     do-strat-1
-    
-    ; handle-passengers-strat-1
-    
+     
     move
         
-    ; MASTER AGENT
-    if bus_id = master_id [
-      get-message
-    ]
-    
-   
-    ; send a message to the master if a bus carries passengers reporting passenger count
-    if length bus_passengers > 0 [
-      message-to master_id
-    ]
-    
-
+;    ; MASTER AGENT
+;    if bus_id = master_id 
+;    [
+;      get-message
+;    ]
+;    
+;    ; send a message to the master if a bus carries passengers reporting passenger count
+;    if length bus_passengers > 0 
+;    [
+;      message-to master_id
+;    ]
   ]
-
 end
 
 to message-to [to_bus_id]
@@ -122,7 +123,7 @@ to get-message
     set message_sender item 0 received_message
     set message_contents item 2 received_message 
     
-    print table:get message_contents "target"
+;    print table:get message_contents "target"
     
   ]
   
@@ -131,12 +132,47 @@ end
 to sort-destinations
   ; destinations is a list of lists
   ; sorts the route lists based on their first item
-  print destinations
-  set destinations sort-by [item 0 ?1 < item 0 ?2] destinations 
-  print destinations
+  set destinations sort-by [first ?1 < first ?2] destinations 
 end
 
 to get-path
+  set destinations []
+  
+  foreach item current_stop graph
+  [
+    ; If target is among neighbours, path to target is target
+    if ? = target
+    [
+      set path lput target path
+      stop
+    ]
+    
+    set dist get-distance current_stop ?
+    set destinations lput (list dist (list ?)) destinations    
+  ]
+  
+  loop
+  [
+    sort-destinations
+    
+    set this_path (last (first destinations))
+    set this_place last this_path
+    set this_dist (first (first destinations))
+    
+    set destinations but-first destinations
+    
+    foreach item this_place graph
+    [
+      if ? = target
+      [
+        set path lput target this_path
+        stop
+      ]
+    
+      set dist get-distance this_place ? + this_dist
+      set destinations lput (list dist (lput ? this_path)) destinations
+    ]
+  ]
   
 end
 
@@ -151,7 +187,7 @@ to init-busses-strat-1
   ]
 end
 
-to get-target-strat-1
+to get-passenger-target-strat-1
   if current_stop = bus_id - 24 
   [
     set pass_list get-passengers-at-stop current_stop
@@ -180,25 +216,29 @@ end
 to do-strat-1
   init-busses-strat-1
   
-  get-target-strat-1
+  get-passenger-target-strat-1
   
   passenger-actions-strat-1
 end
 
 to move
   ; Update path if nessesary
-  if first path = current_stop 
+  if not empty? path and first path = current_stop 
   [
     set path but-first path
   ]
   
-  ; Get the path to target if there is no path
-  if empty? path
+  ; If there is no updated target
+  if not (current_stop = target)
   [
-    get-path  
+    ; Get the path to target if there is no path
+    if empty? path
+    [
+      get-path  
+    ]
+    
+    ; Move along the path
+    travel-to first path
   ]
-
-  ; Move along the path
-  travel-to first path
 end
 
