@@ -42,6 +42,11 @@ buses-own [
   ; passenger counting
   total_passengers
   stops_list
+  destinations_at_stop
+  most_occurring_destination
+  occurrences
+  max_occurrences
+  destination_list
 ]
  
 globals [graph]
@@ -71,7 +76,7 @@ to execute-actions
     move
     
     get-total-passengers
-    show total_passengers
+    show destination_list
         
 ;    ; MASTER AGENT
 ;    if bus_id = master_id 
@@ -252,13 +257,47 @@ to move
 end
 
 to get-total-passengers
-  ; get total number of passengers currently waiting at stops
+  ; get total number of passengers currently waiting at stops AND a list of stops having the largest number of passengers with common destination
 
   set total_passengers 0
+  set destination_list []
+  set max_occurrences 0
   
   foreach stops_list
   [
+    ; update total number of passengers
     set total_passengers total_passengers + length get-passengers-at-stop ?
+    
+    ; obtain a list of destinations at each stop
+    set destinations_at_stop []
+    foreach get-passengers-at-stop ?
+    [
+      set destinations_at_stop lput item 1 ? destinations_at_stop    
+    ]
+    
+    ; extract the most occurring destinations from the destination list, find how often the most frequent one occurs
+    if length destinations_at_stop > 0 [
+      set most_occurring_destination item 0 modes destinations_at_stop 
+      
+      ; count how often the most frequent destination occurs at each stop
+      set occurrences 0
+      foreach destinations_at_stop
+      [
+        if most_occurring_destination = ? [set occurrences occurrences + 1]
+      ]
+      
+      ; now build a sorted list of stops, based on how many passengers with the same destination are at that stop
+      ; we count whether the number of occurences of a destination at that stop exceeds the global maximum.
+      ; if so, we place that stop to the front of the list (meaning it has the highest priority) and set this destination count as the new global maximum
+      ; if not, we place it at the back of the list
+      ; returns destination_list, of which the first item is the stop with the most passengers having a common destination
+      ifelse occurrences > max_occurrences
+      [set destination_list fput ? destination_list
+        set max_occurrences occurrences
+        ]
+      [set destination_list lput ? destination_list]
+    ]
+    
   ]
   
   
