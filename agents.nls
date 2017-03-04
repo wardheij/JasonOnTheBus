@@ -38,6 +38,10 @@ buses-own [
   message_count
   
   desired_target
+  
+  ; passenger counting
+  total_passengers
+  loop_count
 ]
  
 globals [graph]
@@ -63,6 +67,9 @@ to execute-actions
     do-strat-1
      
     move
+    
+    get-total-passengers
+    show total_passengers
         
 ;    ; MASTER AGENT
 ;    if bus_id = master_id 
@@ -242,3 +249,18 @@ to move
   ]
 end
 
+to get-total-passengers
+  ; get total number of passengers currently waiting at stops
+
+  set loop_count 0
+  set total_passengers 0
+  loop
+  [
+    ; loop over all bus stops
+    if loop_count = length graph [stop]
+    set total_passengers total_passengers + length get-passengers-at-stop loop_count
+    set loop_count loop_count + 1
+  ]
+  
+  
+end
