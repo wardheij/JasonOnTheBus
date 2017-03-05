@@ -22,6 +22,9 @@ buses-own [
   target
   path
   
+  ; Where was this bus spawned
+  original
+  
   ; Temporary variables for finding the shortest route
   destinations
   dist
@@ -37,9 +40,7 @@ buses-own [
   message_contents
   message_count
   
-  desired_target
-  
-  ; passenger counting
+  ; Passenger counting
   total_passengers
   stops_list
   destinations_at_stop
@@ -48,6 +49,7 @@ buses-own [
   max_occurrences
   destination_list
   
+  ; Used to find the amount of stops
   network_size
 ]
  
@@ -56,13 +58,16 @@ globals [graph]
 to init-buses
   ; Initialize your agents here.
   
+  ; General variables
   set path []
   set destinations []
-  set target 3
-  
+  set target current_stop
+  set original current_stop
   
   ; This list contains the topology of the entire network of bus stops, which is known to all agents. You can use this, for instance, to calculate the shortest path between two bus stops.
   set graph [[22 15 14] [11 19 23 7] [8] [16 4 20 9] [3 5 10] [4 16 10 17] [8] [1 17 13] [2 6 9] [3 8 20] [4 5 17 13 21] [1 16 17] [20 15 22] [7 10 22 23] [0 23] [0 12 18] [3 5 11] [5 7 10 11] [15] [1 23] [3 9 12 21] [10 20 22] [0 12 13 21] [1 13 14 19]]
+  
+  ; Variables required for counting passengers and such
   set stops_list n-values (length graph - 1) [? + 1]
   set network_size length graph
   set master_id network_size
@@ -128,7 +133,8 @@ end
 to get-message
   
   ; only process messages if any exist
-  if length inbox > 0 [ 
+  if length inbox > 0 
+  [ 
     
     ; calculate number of messages received    
     set message_count length inbox
@@ -137,7 +143,7 @@ to get-message
     set received_message item (message_count - 1) inbox
     
     ; select the sender ID and message contents from the message
-    set message_sender item 0 received_message
+    set message_sender first received_message
     set message_contents item 2 received_message 
     
 ;    print table:get message_contents "target"
@@ -238,6 +244,11 @@ to do-strat-1
   passenger-actions-strat-1
 end
 
+to do-strat-2
+  init-busses-strat-1
+  
+end
+
 to move
   ; Update path if nessesary
   if not empty? path and first path = current_stop 
@@ -280,7 +291,7 @@ to get-total-passengers
     
     ; extract the most occurring destinations from the destination list, find how often the most frequent one occurs
     if length destinations_at_stop > 0 [
-      set most_occurring_destination item 0 modes destinations_at_stop 
+      set most_occurring_destination first modes destinations_at_stop 
       
       ; count how often the most frequent destination occurs at each stop
       set occurrences 0
@@ -295,10 +306,13 @@ to get-total-passengers
       ; if not, we place it at the back of the list
       ; returns destination_list, of which the first item is the stop with the most passengers having a common destination
       ifelse occurrences > max_occurrences
-      [set destination_list fput ? destination_list
+      [
+        set destination_list fput ? destination_list
         set max_occurrences occurrences
-        ]
-      [set destination_list lput ? destination_list]
+      ]
+      [
+        set destination_list lput ? destination_list
+      ]
     ]
     
   ]
@@ -312,7 +326,7 @@ to check-for-drop
   [
     if current_stop = item 1 ?
     [
-      drop-off-passenger item 0 ?
+      drop-off-passenger first ?
     ]
     
   ]
@@ -330,7 +344,7 @@ to check-for-pickup
     [
       if (member? item 1 ? path)
       [
-        pick-up-passenger item 0 ?
+        pick-up-passenger first ?
       ]
       
     ]
