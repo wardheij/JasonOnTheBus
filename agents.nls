@@ -107,12 +107,14 @@ to execute-actions
 
   ask buses 
   [
-    do-strat-2
-     
-    move
-    
     get-total-passengers
-    check-for-pickup
+    
+    if total_passengers > 0 or length bus_passengers > 0
+    [
+      do-strat-2
+      
+      move
+    ]
         
 ;    ; MASTER AGENT
 ;    if bus_id = master_id 
@@ -292,16 +294,17 @@ to do-strat-2
   [
     get-total-passengers
     
-    let bus_ratio int ((total_passengers - (number_of_buses * 12)) / 12)
+    let bus_ratio int ((total_passengers - (number_of_buses * 60)) / 60)
     
     if bus_ratio > 1
     [
-      repeat bus_ratio [add-bus 1]
+      repeat bus_ratio [add-bus 2]
       
       set number_of_buses number_of_buses + bus_ratio
     ]
     
-    show total_passengers
+;    show total_passengers
+;    show number_of_buses
   ]
   
   check-for-drop
@@ -337,7 +340,10 @@ to do-strat-2
     ]
     
     ; Get the new path
-    get-path
+    if current_stop != target
+    [
+      get-path
+    ]
   ]
   
   if target = current_stop
