@@ -47,11 +47,11 @@ buses-own [
   occurrences
   max_occurrences
   destination_list
+  
+  network_size
 ]
  
-globals [
-  graph
-  network_size]
+globals [graph]
 
 to init-buses
   ; Initialize your agents here.
@@ -79,7 +79,7 @@ to execute-actions
     move
     
     get-total-passengers
-    show destination_list
+    check-for-pickup
         
 ;    ; MASTER AGENT
 ;    if bus_id = master_id 
@@ -303,5 +303,37 @@ to get-total-passengers
     
   ]
   
+  
+end
+
+to check-for-drop
+
+  foreach bus_passengers
+  [
+    if current_stop = item 1 ?
+    [
+      drop-off-passenger item 0 ?
+    ]
+    
+  ]
+  
+end
+
+to check-for-pickup
+
+  ifelse current_stop = -1
+  [
+    stop
+  ]
+  [
+    foreach get-passengers-at-stop current_stop
+    [
+      if (member? item 1 ? path)
+      [
+        pick-up-passenger item 0 ?
+      ]
+      
+    ]
+  ]
   
 end
