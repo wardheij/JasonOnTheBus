@@ -302,9 +302,6 @@ to do-strat-2
       
       set number_of_buses number_of_buses + bus_ratio
     ]
-    
-;    show total_passengers
-;    show number_of_buses
   ]
   
   check-for-drop
@@ -318,7 +315,6 @@ to do-strat-2
       drop-off-passenger first ?
     ]
     
-;    show bus_passengers
     
     ; TODO: Determine biggest group
     ; TODO: Set (correct) target (currently just goes to the first target, or any stop with passengers...) 
@@ -327,7 +323,7 @@ to do-strat-2
       set target item 1 first get-passengers-at-stop original
     ]
     [
-      ; If there are no passengers to transfer, go to a stop with passengers
+      ; If there are no passengers to transfer, go to a stop with passengers TODO COORD
       let i 0
       while [i < network_size] 
       [
@@ -353,22 +349,18 @@ to do-strat-2
   
   ; Always check for pickup first, then fill the buss with transfers.
   check-for-pickup
-;  
-;  show bus_passengers
-;  show get-passengers-at-stop original
+
   
   if current_stop != -1 and target = original
   [
     let i 0
     let limit min list (bus_size - length bus_passengers) (length get-passengers-at-stop current_stop)
-;    show limit
-;    show get-passengers-at-stop current_stop
+    
     while [i < limit]
     [
       pick-up-passenger first first get-passengers-at-stop current_stop
       set i i + 1
     ]
-;    show bus_passengers
   ]
   
 
