@@ -25,6 +25,12 @@ buses-own [
   ; Where was this bus spawned
   original
   
+  ; How many buses are spawned
+  number_of_buses
+  
+  ; What is the bus size
+  bus_size
+  
   ; Temporary variables for finding the shortest route
   destinations
   dist
@@ -64,6 +70,22 @@ to init-buses
   set target current_stop
   set original current_stop
   
+  ; Determine bus_size
+  if bus_type = 1
+  [
+    set bus_size 12
+  ]
+  if bus_type = 2
+  [
+    set bus_size 60
+  ]
+  if bus_size = 3
+  [
+    set bus_size 150
+  ]
+  
+  
+  
   ; This list contains the topology of the entire network of bus stops, which is known to all agents. You can use this, for instance, to calculate the shortest path between two bus stops.
   set graph [[22 15 14] [11 19 23 7] [8] [16 4 20 9] [3 5 10] [4 16 10 17] [8] [1 17 13] [2 6 9] [3 8 20] [4 5 17 13 21] [1 16 17] [20 15 22] [7 10 22 23] [0 23] [0 12 18] [3 5 11] [5 7 10 11] [15] [1 23] [3 9 12 21] [10 20 22] [0 12 13 21] [1 13 14 19]]
   
@@ -71,6 +93,12 @@ to init-buses
   set stops_list n-values (length graph - 1) [? + 1]
   set network_size length graph
   set master_id network_size
+  
+  set number_of_buses number_of_buses + 1
+  
+  
+  init-buses-strat-2
+  
 end
 
 to execute-actions
@@ -79,7 +107,7 @@ to execute-actions
 
   ask buses 
   [
-    do-strat-1
+    do-strat-2
      
     move
     
@@ -255,8 +283,77 @@ to do-strat-1
   passenger-actions-strat-1
 end
 
+to init-buses-strat-2
+  set target bus_id mod network_size
+end
+
 to do-strat-2
-  init-busses-strat-1
+  if bus_id = master_id
+  [
+    get-total-passengers
+    
+    let bus_ratio int ((total_passengers - (number_of_buses * 12)) / 12)
+    
+    if bus_ratio > 1
+    [
+      repeat bus_ratio [add-bus 1]
+      
+      set number_of_buses number_of_buses + bus_ratio
+    ]
+  ]
+  
+  check-for-drop
+  
+  ; If we are at the transfer-hub
+  if current_stop = original
+  [
+    ; Drop all passengers
+    foreach bus_passengers 
+    [
+      drop-off-passenger ?
+    ]
+    
+    ; TODO: Determine biggest group
+    ; TODO: Set (correct) target (currently just goes to the first target, or any stop with passengers...) 
+    ifelse length get-passengers-at-stop original > 0
+    [
+      set target item 1 first get-passengers-at-stop original
+    ]
+    [
+      ; If there are no passengers to transfer, go to a stop with passengers
+      let i 0
+      while [i < network_size] 
+      [
+        if length get-passengers-at-stop i > 0
+        [
+          set target i
+        ]
+      ]
+    ]
+  ]
+  
+  if target = current_stop
+  [
+    set target original
+  ]
+  
+  ; Always check for pickup first, then fill the buss with transfers.
+  check-for-pickup
+  
+  if current_stop != -1
+  [
+    let i 0
+    let limit min list (bus_size - length bus_passengers) (length get-passengers-at-stop current_stop)
+    show limit
+    show get-passengers-at-stop current_stop
+    while [i < limit]
+    [
+      pick-up-passenger first first get-passengers-at-stop current_stop
+      set i i + 1
+    ]
+  ]
+  
+
   
 end
 
