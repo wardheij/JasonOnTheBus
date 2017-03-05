@@ -49,12 +49,13 @@ buses-own [
   destination_list
 ]
  
-globals [graph]
+globals [
+  graph
+  network_size]
 
 to init-buses
   ; Initialize your agents here.
   
-  set master_id 24
   set path []
   set destinations []
   set target 3
@@ -63,6 +64,8 @@ to init-buses
   ; This list contains the topology of the entire network of bus stops, which is known to all agents. You can use this, for instance, to calculate the shortest path between two bus stops.
   set graph [[22 15 14] [11 19 23 7] [8] [16 4 20 9] [3 5 10] [4 16 10 17] [8] [1 17 13] [2 6 9] [3 8 20] [4 5 17 13 21] [1 16 17] [20 15 22] [7 10 22 23] [0 23] [0 12 18] [3 5 11] [5 7 10 11] [15] [1 23] [3 9 12 21] [10 20 22] [0 12 13 21] [1 13 14 19]]
   set stops_list n-values (length graph - 1) [? + 1]
+  set network_size length graph
+  set master_id network_size
 end
 
 to execute-actions
@@ -197,12 +200,12 @@ to init-busses-strat-1
     [
       add-bus 1
     ]
-    set target bus_id - 24 
+    set target bus_id - network_size 
   ]
 end
 
 to get-passenger-target-strat-1
-  if current_stop = bus_id - 24 
+  if current_stop = bus_id - network_size 
   [
     set pass_list get-passengers-at-stop current_stop
     if length pass_list > 0
@@ -222,7 +225,7 @@ to passenger-actions-strat-1
     if current_stop = item 1 item 0 bus_passengers
     [
       drop-off-passenger item 0 item 0 bus_passengers
-      set target bus_id - 24
+      set target bus_id - network_size
     ]
   ]
 end
