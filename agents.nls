@@ -159,6 +159,11 @@ to sort-destinations
 end
 
 to get-path
+  ; Find the destination based on a priority queue;
+  ; - Add neighbours to queue [distance [list_of_path]]
+  ; - Sort queue
+  ; - If target is found, stop
+  
   set destinations []
   
   foreach item current_stop graph
@@ -170,10 +175,12 @@ to get-path
       stop
     ]
     
+    ; If not, start A*
     set dist get-distance current_stop ?
     set destinations lput (list dist (list ?)) destinations    
   ]
   
+
   loop
   [
     sort-destinations
@@ -182,16 +189,20 @@ to get-path
     set this_place last this_path
     set this_dist (first (first destinations))
     
+    ; Pop from queue
     set destinations but-first destinations
     
+    ; Check neighbours
     foreach item this_place graph
     [
+      ; Stop when the target is found
       if ? = target
       [
         set path lput target this_path
         stop
       ]
     
+      ; Update queue
       set dist get-distance this_place ? + this_dist
       set destinations lput (list dist (lput ? this_path)) destinations
     ]
