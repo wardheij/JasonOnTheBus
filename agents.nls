@@ -113,18 +113,26 @@ to execute-actions
     
     move
   ]
+    
+  ; sends a message to master if this agent votes for a new bus
+  request-add-bus
       
-;    ; MASTER AGENT
-;    if bus_id = master_id 
-;    [
-;      get-message
-;    ]
-;    
-;    ; send a message to the master if a bus carries passengers reporting passenger count
-;    if length bus_passengers > 0 
-;    [
-;      message-to master_id
-;    ]
+  ; MASTER AGENT
+  if bus_id = master_id 
+  [
+
+    ; retrieve messages from inbox
+    get-messages
+    
+    ; if master is the only bus, the master is a dictator and determines whether a bus is added
+    ; for #buses > 1, we take a plurality vote on whether to add buses
+    ifelse number_of_buses = 1
+    [dictator-vote]
+    [plurality-vote]
+    
+    ; clear inbox to correctly count votes
+    set inbox []
+  ]
 end
 
 to message-to [to_bus_id]
@@ -135,11 +143,9 @@ to message-to [to_bus_id]
   ; create message dictionary containing update on the current status of the bus.
   ; status updates like these are useful for messages sent by slaves to the master.
   let dict table:make 
-  table:put dict "passenger count" passenger_count
-  table:put dict "target" target
-  table:put dict "passengers" bus_passengers
-  table:put dict "current stop" current_stop
-  table:put dict "previous stop" previous_stop
+
+  ; vote for an additional bus
+  table:put dict "request bus" 1
   
   ; This is simply an example of a message containing simple bus information. If desired, this message 
   ; structure may be expanded indefinitely by adding fields. 
@@ -157,12 +163,11 @@ to message-to [to_bus_id]
 end
 
 
-to get-message
+to get-messages
   
   ; only process messages if any exist
   if length inbox > 0 
   [ 
-    
     ; calculate number of messages received    
     set message_count length inbox
     
@@ -173,10 +178,45 @@ to get-message
     set message_sender first received_message
     set message_contents item 2 received_message 
     
-;    print table:get message_contents "target"
-    
   ]
   
+end
+
+to plurality-vote
+  ; Decide whether or not to add a new bus, based on the number of votes recieved by the master agent.
+  ; When more than 25% of the buses vote 'pro' at the same time, a bus is added. 
+  ; Note: not voting counts as a vote against, in order to send a minimum number of messages.
+  if message_count > (0.25 * number_of_buses)
+  [
+    get-total-passengers
+    
+    let bus_ratio int ((total_passengers - (number_of_buses * 60)) / 60)
+    
+    if bus_ratio > 1
+    [
+      repeat bus_ratio [add-bus 2]
+      
+      set number_of_buses number_of_buses + bus_ratio
+    ]
+  ] 
+end
+
+to dictator-vote
+  ; Master agent decides to add a bus when the number of waiting passengers at Amsterdam CS exceeds the bus size. 
+  if length get-passengers-at-stop original > (bus_size)
+  [
+    add-bus 2
+    set number_of_buses number_of_buses + 1
+  ]
+end
+
+to request-add-bus
+  ; Vote for the addition of a bus if a bus observes more than 8 waiting passengers at its current stop.
+  if not (current_stop = -1)
+  [
+    if length get-passengers-at-stop current_stop > 8 [message-to master_id]
+  ]
+
 end
     
 to sort-destinations
@@ -287,19 +327,6 @@ to init-buses-strat-2
 end
 
 to do-strat-2
-  if bus_id = master_id
-  [
-    get-total-passengers
-    
-    let bus_ratio int ((total_passengers - (number_of_buses * 60)) / 60)
-    
-    if bus_ratio > 1
-    [
-      repeat bus_ratio [add-bus 2]
-      
-      set number_of_buses number_of_buses + bus_ratio
-    ]
-  ]
   
   check-for-drop
   
@@ -334,7 +361,10 @@ to do-strat-2
         set i i + 1
       ]
       
+      if length tmp_list > 0 
+      [
       set target one-of tmp_list
+      ]
     ]
     
     ; Get the new path
@@ -349,7 +379,7 @@ to do-strat-2
     set target original
   ]
   
-  ; Always check for pickup first, then fill the buss with transfers.
+  ; Always check for pickup first, then fill the bus with transfers.
   check-for-pickup
 
   
@@ -477,3 +507,5 @@ to check-for-pickup
   ]
   
 end
+
+
