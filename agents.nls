@@ -105,17 +105,15 @@ to execute-actions
   ; Add decision making strategies for your agents here.
   ; You are allowed to use the global variable 'ticks'.
 
-  ask buses 
+  get-total-passengers
+  
+  if total_passengers > 0 or length bus_passengers > 0
   [
-    get-total-passengers
+    do-strat-2
     
-    if total_passengers > 0 or length bus_passengers > 0
-    [
-      do-strat-2
+    move
+  ]
       
-      move
-    ]
-        
 ;    ; MASTER AGENT
 ;    if bus_id = master_id 
 ;    [
@@ -127,7 +125,6 @@ to execute-actions
 ;    [
 ;      message-to master_id
 ;    ]
-  ]
 end
 
 to message-to [to_bus_id]
