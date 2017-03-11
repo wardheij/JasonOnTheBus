@@ -955,6 +955,17 @@ final_average_travelling_time
 1
 11
 
+MONITOR
+1097
+327
+1203
+372
+Number of buses
+count buses
+17
+1
+11
+
 @#$#@#$#@
 ## WHAT IS IT?
 
