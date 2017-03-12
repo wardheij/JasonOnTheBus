@@ -966,6 +966,53 @@ count buses
 1
 11
 
+MONITOR
+1097
+372
+1264
+417
+Current average occupancy
+occupancy
+17
+1
+11
+
+PLOT
+1096
+416
+1296
+566
+Average occupancy
+NIL
+NIL
+0.0
+10.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot occupancy"
+
+PLOT
+1294
+416
+1494
+566
+Busses
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot count buses"
+
 @#$#@#$#@
 ## WHAT IS IT?
 
