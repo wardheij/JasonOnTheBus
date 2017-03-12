@@ -46,14 +46,6 @@ buses-own [
   message_contents
   message_count
   
-  ; Passenger counting
-  stops_list
-  destinations_at_stop
-  most_occurring_destination
-  occurrences
-  max_occurrences
-  destination_list
-  
   ; Used to find the amount of stops
   network_size
 ]
@@ -88,7 +80,6 @@ to init-buses
   set graph [[22 15 14] [11 19 23 7] [8] [16 4 20 9] [3 5 10] [4 16 10 17] [8] [1 17 13] [2 6 9] [3 8 20] [4 5 17 13 21] [1 16 17] [20 15 22] [7 10 22 23] [0 23] [0 12 18] [3 5 11] [5 7 10 11] [15] [1 23] [3 9 12 21] [10 20 22] [0 12 13 21] [1 13 14 19]]
   
   ; Variables required for counting passengers and such
-  set stops_list n-values (length graph - 1) [? + 1]
   set network_size length graph
   set master_id network_size
   
@@ -187,11 +178,15 @@ end
 
 to-report total-passengers
   let total 0
-  let i 0
-  while [i < 24]
+  
+  if ticks != 0 
   [
+    let i 0
+    while [i < 24]
+    [
       set total total + length get-passengers-at-stop i
       set i i + 1
+    ]
   ]
   report total
 end
@@ -380,7 +375,20 @@ to do-strat-2
     ; TODO: Set (correct) target (currently just goes to the first target, or any stop with passengers...) 
     ifelse length get-passengers-at-stop original > 0
     [
+      ; First gets us the best results, "oldest passenger first".
       set target item 1 first get-passengers-at-stop original
+      
+      ; Pretty good.
+      ;set target item 1 one-of get-passengers-at-stop original
+     
+      ; Pretty good, but not enough visits to buikslotermeer
+      ;set target get-best-destination-at-stop original
+      
+      ; Worst results
+      ;set target item 1 last get-passengers-at-stop original
+      
+      ; Doesn't work since all buses will go to this stop now..
+      ;set target stop-with-most-waiting
     ]
     [
       ; If there are no passengers to transfer, go to a stop with passengers TODO COORD
@@ -456,52 +464,42 @@ to move
   ]
 end
 
-to get-total-passengers
-  ; get total number of passengers currently waiting at stops AND a list of stops having the largest number of passengers with common destination
-
-  set destination_list []
-  set max_occurrences 0
+to-report get-best-destination-at-stop [x]
+  let destinations_at_stop []
+  let most_occurring_destination 0
   
-  foreach stops_list
+  ; obtain a list of destinations at each stop
+  foreach get-passengers-at-stop x
   [
-
-    
-    ; obtain a list of destinations at each stop
-    set destinations_at_stop []
-    foreach get-passengers-at-stop ?
-    [
-      set destinations_at_stop lput item 1 ? destinations_at_stop    
-    ]
-    
-    ; extract the most occurring destinations from the destination list, find how often the most frequent one occurs
-    if length destinations_at_stop > 0 [
-      set most_occurring_destination first modes destinations_at_stop 
-      
-      ; count how often the most frequent destination occurs at each stop
-      set occurrences 0
-      foreach destinations_at_stop
-      [
-        if most_occurring_destination = ? [set occurrences occurrences + 1]
-      ]
-      
-      ; now build a sorted list of stops, based on how many passengers with the same destination are at that stop
-      ; we count whether the number of occurences of a destination at that stop exceeds the global maximum.
-      ; if so, we place that stop to the front of the list (meaning it has the highest priority) and set this destination count as the new global maximum
-      ; if not, we place it at the back of the list
-      ; returns destination_list, of which the first item is the stop with the most passengers having a common destination
-      ifelse occurrences > max_occurrences
-      [
-        set destination_list fput ? destination_list
-        set max_occurrences occurrences
-      ]
-      [
-        set destination_list lput ? destination_list
-      ]
-    ]
-    
+    set destinations_at_stop lput item 1 ? destinations_at_stop    
   ]
   
+  ; extract the most occurring destinations from the destination list, find how often the most frequent one occurs
+  if length destinations_at_stop > 0 
+  [
+    set most_occurring_destination first modes destinations_at_stop 
+  ]
   
+  report most_occurring_destination
+end
+
+to-report stop-with-most-waiting
+  let best 0
+  let best_amount 0
+  
+  let i 0
+  while [i < 24]
+  [
+    let current_amount length get-passengers-at-stop i
+    if current_amount > best_amount and i != original
+    [
+      set best i
+      set best_amount current_amount
+    ]
+    set i i + 1
+  ]
+  
+  report best
 end
 
 ; Check if a passenger currently in the bus can be dropped off at the current stop.
