@@ -163,7 +163,8 @@ end
 to-report occupancy
   let total 0
   let amount 0
-  ask buses [
+  ask buses 
+  [
     set amount amount + 1
     set total total + (length bus_passengers / bus_size)
   ]
@@ -174,6 +175,24 @@ to-report occupancy
   [
     report total / amount
   ]
+end
+
+to-report bus-volume
+  let total 0
+  ask buses 
+  [
+    set total total + bus_size
+  ]
+  report total
+end
+
+to-report total-passengers
+  let total 0
+  foreach stops_list
+  [
+      set total total + length get-passengers-at-stop ?
+  ]
+  report total
 end
 
 to get-messages
@@ -223,7 +242,7 @@ to request-add-bus
 end
 
 to do-add-buses 
-    get-total-passengers
+  get-total-passengers
   
   let bus_ratio int ((total_passengers - (number_of_buses * 60)) / 60)
   

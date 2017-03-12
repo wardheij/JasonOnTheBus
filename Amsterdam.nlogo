@@ -945,10 +945,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plot number_of_messages"
 
 MONITOR
-1098
-196
-1338
-241
+1097
+194
+1337
+239
 Average Travel Time
 final_average_travelling_time
 2
@@ -1012,6 +1012,17 @@ false
 "" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plot count buses"
+
+MONITOR
+1202
+327
+1369
+372
+Total bus passenger volume
+bus-volume
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
