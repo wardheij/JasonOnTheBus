@@ -82,6 +82,7 @@ to init-buses
   
   init-buses-strat-2
   
+  ; Set the cache.
   set cache_path table:make
   
 end
@@ -147,6 +148,7 @@ to message-to [to_bus_id]
   
 end
 
+; Reports the average occupancy of all buses.
 to-report occupancy
   let total 0
   let amount 0
@@ -164,6 +166,7 @@ to-report occupancy
   ]
 end
 
+; Reports the total bus volume.
 to-report bus-volume
   let total 0
   ask buses 
@@ -173,6 +176,7 @@ to-report bus-volume
   report total
 end
 
+; Reports the total amount of passengers waiting at stops.
 to-report total-passengers
   let total 0
   
@@ -234,6 +238,8 @@ to request-add-bus
 
 end
 
+; Adds an amount of busses that corresponds to the amount of passengers waiting at stops.
+; TODO: Find a better solution..
 to do-add-buses 
   let total_passengers total-passengers
   
@@ -246,10 +252,10 @@ to do-add-buses
     set number_of_buses number_of_buses + bus_ratio
   ]
 end
-    
+
+; destinations is a list of lists
+; sorts the route lists based on their first item
 to-report sort-destinations [destinations]
-  ; destinations is a list of lists
-  ; sorts the route lists based on their first item
   report sort-by [first ?1 < first ?2] destinations 
 end
 
@@ -261,6 +267,7 @@ to-report get-path
   
   let index (target * 24) + current_stop
   
+  ; Cache hit. A* is not nessecary.
   if table:has-key? cache_path index
   [
     report table:get cache_path index
@@ -270,7 +277,7 @@ to-report get-path
   
   foreach item current_stop graph
   [
-    ; If target is among neighbours, path to target is target
+    ; If target is among neighbours, path to target is target, add to cache
     if ? = target
     [
       let return lput target path
@@ -298,7 +305,7 @@ to-report get-path
     ; Check neighbours
     foreach item this_place graph
     [
-      ; Stop when the target is found
+      ; Stop when the target is found, add to cache
       if ? = target
       [
         let return lput target this_path
@@ -470,6 +477,7 @@ to move
   ]
 end
 
+; Finds the stop to which the most passengers want to go
 to-report get-best-destination-at-stop [x]
   let destinations_at_stop []
   let most_occurring_destination 0
@@ -489,6 +497,7 @@ to-report get-best-destination-at-stop [x]
   report most_occurring_destination
 end
 
+; Finds the stop with the most waiting passengers
 to-report stop-with-most-waiting
   let best 0
   let best_amount 0
