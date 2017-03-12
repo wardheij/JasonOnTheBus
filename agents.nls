@@ -31,13 +31,6 @@ buses-own [
   ; What is the bus size
   bus_size
   
-  ; Temporary variables for finding the shortest route
-  destinations
-  dist
-  this_path
-  this_place
-  this_dist
-  
   ; Messaging variables for week 3
   master_id
   passenger_count
@@ -48,6 +41,9 @@ buses-own [
   
   ; Used to find the amount of stops
   network_size
+  
+  ; Path cache
+  cache_path
 ]
  
 globals [graph]
@@ -57,7 +53,6 @@ to init-buses
   
   ; General variables
   set path []
-  set destinations []
   set target current_stop
   set original current_stop
   
@@ -86,6 +81,8 @@ to init-buses
   set number_of_buses number_of_buses + 1
   
   init-buses-strat-2
+  
+  set cache_path table:make
   
 end
 
@@ -250,42 +247,50 @@ to do-add-buses
   ]
 end
     
-to sort-destinations
+to-report sort-destinations [destinations]
   ; destinations is a list of lists
   ; sorts the route lists based on their first item
-  set destinations sort-by [first ?1 < first ?2] destinations 
+  report sort-by [first ?1 < first ?2] destinations 
 end
 
-to get-path
+to-report get-path
   ; Find the destination based on a priority queue;
   ; - Add neighbours to queue [distance [list_of_path]]
   ; - Sort queue
   ; - If target is found, stop
   
-  set destinations []
+  let index (target * 24) + current_stop
+  
+  if table:has-key? cache_path index
+  [
+    report table:get cache_path index
+  ]
+  
+  let destinations []
   
   foreach item current_stop graph
   [
     ; If target is among neighbours, path to target is target
     if ? = target
     [
-      set path lput target path
-      stop
+      let return lput target path
+      table:put cache_path index return
+      report return
     ]
     
     ; If not, start A*
-    set dist get-distance current_stop ?
+    let dist get-distance current_stop ?
     set destinations lput (list dist (list ?)) destinations    
   ]
   
 
   loop
   [
-    sort-destinations
+    set destinations sort-destinations destinations
     
-    set this_path (last (first destinations))
-    set this_place last this_path
-    set this_dist (first (first destinations))
+    let this_path (last (first destinations))
+    let this_place last this_path
+    let this_dist (first (first destinations))
     
     ; Pop from queue
     set destinations but-first destinations
@@ -296,12 +301,13 @@ to get-path
       ; Stop when the target is found
       if ? = target
       [
-        set path lput target this_path
-        stop
+        let return lput target this_path
+        table:put cache_path index return
+        report return
       ]
     
       ; Update queue
-      set dist get-distance this_place ? + this_dist
+      let dist get-distance this_place ? + this_dist
       set destinations lput (list dist (lput ? this_path)) destinations
     ]
   ]
@@ -414,7 +420,7 @@ to do-strat-2
     ; Get the new path
     if current_stop != target
     [
-      get-path
+      set path get-path
     ]
   ]
   
@@ -456,7 +462,7 @@ to move
     ; Get the path to target if there is no path
     if empty? path
     [
-      get-path  
+      set path get-path  
     ]
     
     ; Move along the path
