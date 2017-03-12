@@ -1024,6 +1024,36 @@ bus-volume
 1
 11
 
+MONITOR
+1369
+327
+1477
+372
+Total passengers
+total-passengers
+17
+1
+11
+
+PLOT
+1493
+416
+1693
+566
+bus volume vs passengers
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot bus-volume"
+"pen-1" 1.0 0 -7500403 true "" "plot total-passengers"
+
 @#$#@#$#@
 ## WHAT IS IT?
 
