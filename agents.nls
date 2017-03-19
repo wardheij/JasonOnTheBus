@@ -61,6 +61,7 @@ to init-buses
   set path []
   set target current_stop
   set original current_stop    
+  set state "go"
   
   ; Determine bus_size
   if bus_type = 1
@@ -115,18 +116,23 @@ to execute-actions
 
   let total_passengers total-passengers
   
-  do-message
+  do-messages
   
-  if total_passengers > 0 or length bus_passengers > 0
+  if (total_passengers > 0 or length bus_passengers > 0)
   [
-    do-strat-2
+    if state = "go"
+    [
+      do-strat-2
+    ]
     
     ; sends a message to master if this agent votes for a new bus
     request-add-bus
     
-    move
+    if state = "go"
+    [
+      move
+    ]
   ]
-      
 
 end
 
@@ -142,8 +148,12 @@ to message-to [to_bus_id key_list value_list]
     let value item i value_list
     
     table:put dict key value
+    
+    set i i + 1
   ]
   
+  show to_bus_id 
+  show dict
   ; send message to required bus
   send-message to_bus_id dict
   
@@ -201,9 +211,11 @@ to do-messages
   ; only process messages if any exist
   if length inbox > 0 
   [     
+    show inbox
     foreach inbox 
     [
-      let sender first ?
+      set inbox remove ? inbox
+      let sender item 1 ?
       let message last ?
       
       if table:has-key? message "vote"
@@ -220,6 +232,8 @@ to do-messages
       
       if table:has-key? message "go"
       [
+        show "HEY"
+        set state "go"
         set target table:get message "go"
       ]
     ]
@@ -239,9 +253,6 @@ to do-messages
       
       set votes 0
     ]
-    
-    ; clear inbox to correctly count votes
-    set inbox []
   ]
 end
 
@@ -272,16 +283,20 @@ to request-add-bus
       message-to master_id ["vote"] ["yes"]
     ]
   ]
-
 end
 
 to get-and-set-claim [bus_to bus_to_size]
   set claims sort-destinations claims
   
+  show bus_to_size
+  
   let value (first first claims) + bus_to_size
   let bus_stop last first claims
   
   set claims replace-item 0 claims (list value bus_stop)
+  
+  show claims
+  show bus_to
   
   message-to bus_to ["go"] (list bus_stop)
 
@@ -424,7 +439,7 @@ to do-strat-2
   check-for-drop
   
   ; If we are at the transfer-hub
-  if current_stop = original
+  if current_stop = original and target = original
   [
     ; Drop all passengers
     foreach bus_passengers 
@@ -437,10 +452,11 @@ to do-strat-2
     ; TODO: Set (correct) target (currently just goes to the first target, or any stop with passengers...) 
     ifelse length get-passengers-at-stop original > 0
     [
-      ;message-to master-id ["where"] [1]
+      message-to master_id ["where"] (list bus_size)
+      set state "wait"
       
       ; First gets us the best results, "oldest passenger first".
-      set target item 1 first get-passengers-at-stop original
+      ;set target item 1 first get-passengers-at-stop original
       
       ; Pretty good.
       ;set target item 1 one-of get-passengers-at-stop original
@@ -455,24 +471,27 @@ to do-strat-2
       ;set target stop-with-most-waiting
     ]
     [
+      message-to master_id ["where"] (list bus_size)
+      set state "wait"
+      
       ; If there are no passengers to transfer, go to a stop with passengers TODO COORD
-      let i 0
-      
-      let tmp_list []
-      
-      while [i < network_size] 
-      [
-        if length get-passengers-at-stop i > 0
-        [
-          set tmp_list lput i tmp_list
-        ]
-        set i i + 1
-      ]
-      
-      if length tmp_list > 0 
-      [
-      set target one-of tmp_list
-      ]
+;      let i 0
+;      
+;      let tmp_list []
+;      
+;      while [i < network_size] 
+;      [
+;        if length get-passengers-at-stop i > 0
+;        [
+;          set tmp_list lput i tmp_list
+;        ]
+;        set i i + 1
+;      ]
+;      
+;      if length tmp_list > 0 
+;      [
+;        set target one-of tmp_list
+;      ]
     ]
     
     ; Get the new path
@@ -489,7 +508,6 @@ to do-strat-2
   
   ; Always check for pickup first, then fill the bus with transfers.
   check-for-pickup
-
   
   if current_stop != -1 and target = original
   [
