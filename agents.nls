@@ -241,6 +241,8 @@ to do-messages
         plurality-vote
       ]
       
+      do-add-buses
+      
       set votes 0
     ]
   ]
@@ -293,6 +295,7 @@ to do-add-buses
   let total_passengers total-passengers
   
   let bus_ratio int ((total_passengers - (number_of_buses * 60)) / 60)
+  set bus_ratio 55 - number_of_buses
   
   if bus_ratio > 1
   [
