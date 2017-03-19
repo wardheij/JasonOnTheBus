@@ -33,10 +33,6 @@ buses-own [
   
   ; Messaging variables for week 3
   master_id
-  
-  received_message
-  message_sender
-  message_contents
   votes
   
   ; Used to find the amount of stops
@@ -106,8 +102,6 @@ to init-buses
       ]
       set i i + 1
     ]
-    
-    show claims
   ]
  
 end
@@ -152,8 +146,6 @@ to message-to [to_bus_id key_list value_list]
     set i i + 1
   ]
   
-  show to_bus_id 
-  show dict
   ; send message to required bus
   send-message to_bus_id dict
   
@@ -211,7 +203,6 @@ to do-messages
   ; only process messages if any exist
   if length inbox > 0 
   [     
-    show inbox
     foreach inbox 
     [
       set inbox remove ? inbox
@@ -232,7 +223,6 @@ to do-messages
       
       if table:has-key? message "go"
       [
-        show "HEY"
         set state "go"
         set target table:get message "go"
       ]
@@ -288,15 +278,10 @@ end
 to get-and-set-claim [bus_to bus_to_size]
   set claims sort-destinations claims
   
-  show bus_to_size
-  
   let value (first first claims) + bus_to_size
   let bus_stop last first claims
   
   set claims replace-item 0 claims (list value bus_stop)
-  
-  show claims
-  show bus_to
   
   message-to bus_to ["go"] (list bus_stop)
 
@@ -453,10 +438,10 @@ to do-strat-2
     ifelse length get-passengers-at-stop original > 0
     [
       message-to master_id ["where"] (list bus_size)
-      set state "wait"
+;                                                       set state "wait"
       
       ; First gets us the best results, "oldest passenger first".
-      ;set target item 1 first get-passengers-at-stop original
+      set target item 1 first get-passengers-at-stop original
       
       ; Pretty good.
       ;set target item 1 one-of get-passengers-at-stop original
@@ -507,7 +492,10 @@ to do-strat-2
   ]
   
   ; Always check for pickup first, then fill the bus with transfers.
-  check-for-pickup
+  if state = "wait"
+  [
+    check-for-pickup
+  ]
   
   if current_stop != -1 and target = original
   [
