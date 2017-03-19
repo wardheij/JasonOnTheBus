@@ -33,11 +33,11 @@ buses-own [
   
   ; Messaging variables for week 3
   master_id
-  passenger_count
+  
   received_message
   message_sender
   message_contents
-  message_count
+  votes
   
   ; Used to find the amount of stops
   network_size
@@ -47,6 +47,9 @@ buses-own [
   
   ; List of claimed passengers
   claims
+  
+  ; State of the bus
+  state
 ]
  
 globals [graph]
@@ -57,7 +60,7 @@ to init-buses
   ; General variables
   set path []
   set target current_stop
-  set original current_stop
+  set original current_stop    
   
   ; Determine bus_size
   if bus_type = 1
@@ -91,11 +94,15 @@ to init-buses
   if bus_id = master_id
   [
     set claims []
-    
+    set votes 0
+
     let i 0
     while [i < network_size]
     [
-      set claims lput (list 0 i) claims
+      if i != original
+      [
+        set claims lput (list 0 i) claims
+      ]
       set i i + 1
     ]
     
@@ -105,10 +112,10 @@ to init-buses
 end
 
 to execute-actions
-  ; Add decision making strategies for your agents here.
-  ; You are allowed to use the global variable 'ticks'.
 
   let total_passengers total-passengers
+  
+  do-message
   
   if total_passengers > 0 or length bus_passengers > 0
   [
@@ -120,49 +127,22 @@ to execute-actions
     move
   ]
       
-  ; MASTER AGENT
-  if bus_id = master_id 
-  [
 
-    ; retrieve messages from inbox
-    get-messages
-    
-    ; if master is the only bus, the master is a dictator and determines whether a bus is added
-    ; for #buses > 1, we take a plurality vote on whether to add buses
-    ifelse number_of_buses = 1
-    [
-      dictator-vote
-    ]
-    [
-      plurality-vote
-    ]
-    
-    ; clear inbox to correctly count votes
-    set inbox []
-  ]
 end
 
-to message-to [to_bus_id]
-  
-  ; obtain passenger count
-  set passenger_count length bus_passengers
-  
+to message-to [to_bus_id key_list value_list]
   ; create message dictionary containing update on the current status of the bus.
   ; status updates like these are useful for messages sent by slaves to the master.
   let dict table:make 
 
-  ; vote for an additional bus
-  table:put dict "request bus" 1
-  
-  ; This is simply an example of a message containing simple bus information. If desired, this message 
-  ; structure may be expanded indefinitely by adding fields. 
-  ; for instance, if we desire that the master should be able to send commands to slave buses, we might 
-  ;     1. add a field containing a target destination for the recipient of the message;
-  ;     2. create a new messaging function specifically for sending target commands, where the only fields are 
-  ;        the commands from the master to the slave bus
-  ;
-  ; this process may be repeated with any number of fields for any purpose. Hence, this communication 
-  ; infrastructure may be used for any purpose by retrieving the desired field from the dict.
+  let i 0
+  while [i < length key_list]
+  [
+    let key item i key_list
+    let value item i value_list
+    
+    table:put dict key value
+  ]
   
   ; send message to required bus
   send-message to_bus_id dict
@@ -173,11 +153,13 @@ end
 to-report occupancy
   let total 0
   let amount 0
+  
   ask buses 
   [
     set amount amount + 1
     set total total + (length bus_passengers / bus_size)
   ]
+  
   ifelse amount = 0
   [
     report 0
@@ -190,6 +172,7 @@ end
 ; Reports the total bus volume.
 to-report bus-volume
   let total 0
+  
   ask buses 
   [
     set total total + bus_size
@@ -213,30 +196,60 @@ to-report total-passengers
   report total
 end
 
-to get-messages
+to do-messages
   
   ; only process messages if any exist
   if length inbox > 0 
-  [ 
-    ; calculate number of messages received    
-    set message_count length inbox
+  [     
+    foreach inbox 
+    [
+      let sender first ?
+      let message last ?
+      
+      if table:has-key? message "vote"
+      [
+        set votes votes + 1
+      ]
+      
+      if table:has-key? message "where"
+      [
+        let bus_to_size table:get message "where"
+        
+        get-and-set-claim sender bus_to_size
+      ]
+      
+      if table:has-key? message "go"
+      [
+        set target table:get message "go"
+      ]
+    ]
+
+    ; OH GREAT DICTATOR, WHAT DO WE DO
+    if bus_id = master_id
+    [
+      ; if master is the only bus, the master is a dictator and determines whether a bus is added
+      ; for #buses > 1, we take a plurality vote on whether to add buses
+      ifelse number_of_buses = 1
+      [
+        dictator-vote
+      ]
+      [
+        plurality-vote
+      ]
+      
+      set votes 0
+    ]
     
-    ; select last message from inbox
-    set received_message item (message_count - 1) inbox
-    
-    ; select the sender ID and message contents from the message
-    set message_sender first received_message
-    set message_contents item 2 received_message 
-    
+    ; clear inbox to correctly count votes
+    set inbox []
   ]
-  
 end
 
 to plurality-vote
   ; Decide whether or not to add a new bus, based on the number of votes recieved by the master agent.
   ; When more than 25% of the buses vote 'pro' at the same time, a bus is added. 
   ; Note: not voting counts as a vote against, in order to send a minimum number of messages.
-  if message_count > (0.25 * number_of_buses)
+  if votes > (0.25 * number_of_buses)
   [
     do-add-buses
   ] 
@@ -254,8 +267,23 @@ to request-add-bus
   ; Vote for the addition of a bus if a bus observes more than 8 waiting passengers at its current stop.
   if not (current_stop = -1)
   [
-    if length get-passengers-at-stop current_stop > 8 [message-to master_id]
+    if length get-passengers-at-stop current_stop > 8 
+    [
+      message-to master_id ["vote"] ["yes"]
+    ]
   ]
+
+end
+
+to get-and-set-claim [bus_to bus_to_size]
+  set claims sort-destinations claims
+  
+  let value (first first claims) + bus_to_size
+  let bus_stop last first claims
+  
+  set claims replace-item 0 claims (list value bus_stop)
+  
+  message-to bus_to ["go"] (list bus_stop)
 
 end
 
@@ -409,6 +437,8 @@ to do-strat-2
     ; TODO: Set (correct) target (currently just goes to the first target, or any stop with passengers...) 
     ifelse length get-passengers-at-stop original > 0
     [
+      ;message-to master-id ["where"] [1]
+      
       ; First gets us the best results, "oldest passenger first".
       set target item 1 first get-passengers-at-stop original
       
@@ -472,8 +502,6 @@ to do-strat-2
       set i i + 1
     ]
   ]
-  
-
   
 end
 
