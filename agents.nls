@@ -31,7 +31,8 @@ buses-own [
   ; What is the bus size
   bus_size
   
-  ; Messaging variables for week 3
+  ; Messaging variables
+  send_next_tick
   master_id
   votes
   
@@ -57,7 +58,7 @@ to init-buses
   set path []
   set target current_stop
   set original current_stop    
-  set state "go"
+  set send_next_tick []
   
   ; Determine bus_size
   if bus_type = 1
@@ -88,10 +89,11 @@ to init-buses
   set cache_path table:make
   
   ; Set the claim list to zeros.
-  if bus_id = master_id
+  ifelse bus_id = master_id
   [
     set claims []
     set votes 0
+    set state "go"
 
     let i 0
     while [i < network_size]
@@ -103,7 +105,9 @@ to init-buses
       set i i + 1
     ]
   ]
- 
+  [
+    set state "wait"
+  ]
 end
 
 to execute-actions
@@ -112,7 +116,7 @@ to execute-actions
   
   do-messages
   
-  if (total_passengers > 0 or length bus_passengers > 0)
+  if total_passengers > 0 or length bus_passengers > 0 or current_stop = -1
   [
     if state = "go"
     [
@@ -127,7 +131,28 @@ to execute-actions
       move
     ]
   ]
+  
+  ; CHEAT
+;  if bus_id = master_id
+;  [
+;    do-add-buses
+;  ]
+end
 
+; Dit werkt niet heel goed
+to-report passenger_on_path 
+  if current_stop != -1 and length get-passengers-at-stop current_stop > 0
+  [
+    report true
+  ]
+  foreach path
+  [
+    if length get-passengers-at-stop ? > 0
+    [
+      report true
+    ]
+  ]
+  report false
 end
 
 to message-to [to_bus_id key_list value_list]
@@ -200,6 +225,15 @@ end
 
 to do-messages
   
+  if bus_id = master_id and not empty? send_next_tick
+  [
+    foreach send_next_tick
+    [
+      get-and-set-claim first ? last ?
+    ]
+    set send_next_tick []
+  ]
+  
   ; only process messages if any exist
   if length inbox > 0 
   [     
@@ -241,8 +275,6 @@ to do-messages
         plurality-vote
       ]
       
-      do-add-buses
-      
       set votes 0
     ]
   ]
@@ -260,10 +292,21 @@ end
 
 to dictator-vote
   ; Master agent decides to add a bus when the number of waiting passengers at Amsterdam CS exceeds the bus size. 
-  if length get-passengers-at-stop original > (bus_size)
+;  if length get-passengers-at-stop original > (bus_size)
+;  [
+;    do-add-buses
+;  ]
+  
+  ; CHEAT: DIS IS DA GOOD ONE
+  let i 0
+  while [i < network_size]
   [
-    do-add-buses
+    add-bus 2
+    set send_next_tick lput (list (number_of_buses + master_id + i) 60) send_next_tick
+    set i i + 1
   ]
+  
+  set number_of_buses number_of_buses + network_size
 end
 
 to request-add-bus
@@ -295,11 +338,19 @@ to do-add-buses
   let total_passengers total-passengers
   
   let bus_ratio int ((total_passengers - (number_of_buses * 60)) / 60)
-  set bus_ratio 55 - number_of_buses
+  
+  ; CHEAT
+;  set bus_ratio 1000 - number_of_buses
   
   if bus_ratio > 1
   [
-    repeat bus_ratio [add-bus 2]
+    let i 0
+    while [i < bus_ratio]
+    [
+      add-bus 2
+      set send_next_tick lput (list (number_of_buses + master_id + i) 60) send_next_tick
+      set i i + 1
+    ]
     
     set number_of_buses number_of_buses + bus_ratio
   ]
@@ -443,7 +494,7 @@ to do-strat-2
       ifelse length get-passengers-at-stop original > 0
       [
         message-to master_id ["where"] (list bus_size)
-                                                                 set state "wait"
+        set state "wait"
       
         ; First gets us the best results, "oldest passenger first".
         ;set target item 1 first get-passengers-at-stop original
