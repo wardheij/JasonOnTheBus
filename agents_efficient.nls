@@ -124,13 +124,16 @@ to execute-actions
       do-strat-2
     ]
     
-    ; Sends a message to master if this agent votes for a new bus
-    request-add-bus
-    
     if state = "go"
     [
       move
     ]
+  ]
+  
+  ; Don't vote, just do it. This prevents 4000+ messages from being sent
+  if bus_id = master_id
+  [
+    do-add-buses
   ]
 end
 
@@ -287,10 +290,15 @@ end
 
 ; Master agent makes sure there are at least [network_size] buses 
 to dictator-vote
-  if length get-passengers-at-stop original > (bus_size)
+  let i 0
+  while [i < network_size]
   [
-    do-add-buses
- ]
+    add-bus 2
+    set send_next_tick lput (list (number_of_buses + master_id + i) 60) send_next_tick
+    set i i + 1
+  ]
+  
+  set number_of_buses number_of_buses + network_size
 end
 
 ; Vote for the addition of a bus if a bus observes more than 8 waiting passengers at its current stop.
@@ -518,5 +526,3 @@ to check-for-pickup
   ]
   
 end
-
-
