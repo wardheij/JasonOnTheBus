@@ -491,7 +491,6 @@ end
 
 ; Check if a passenger currently in the bus can be dropped off at the current stop.
 to check-for-drop
-
   foreach bus_passengers
   [
     if current_stop = item 1 ?
@@ -500,12 +499,10 @@ to check-for-drop
     ]
     
   ]
-  
 end
 
 ; Check if there are any passengers at the current stop with a destination on the bus' path list and if so, pick 'em up. 
 to check-for-pickup
-
   ifelse current_stop = -1
   [
     stop
@@ -523,6 +520,5 @@ to check-for-pickup
       ]
       
     ]
-  ]
-  
+  ] 
 end
